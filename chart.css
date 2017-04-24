@@ -1,0 +1,49 @@
+html, body {
+	font-size: 14px;
+	font-family: Arial;
+}
+
+#chart_view {
+	position: relative;
+}
+
+.chart-item {
+	
+	color: white;
+	font-size: 16px;
+	display: block;
+	margin-bottom: 2px;
+}
+
+.chart-item div {
+	display: inline-block;
+	height: 40px;
+	background-color: grey;
+	line-height: 40px;
+	vertical-align: middle;
+	overflow: hidden;
+	margin-left: 2px;
+}
+
+.chart-pos, .chart-prev-pos {
+	width: 40px;
+	text-align: center;
+}
+
+.chart-artist, .chart-song {
+	width: 200px;
+	text-align:left;
+	padding-left: 5px;
+
+}
+
+.chart-sales {
+	width: 80px;
+	text-align: center;
+}
+
+.chart-run {
+	width: 600px;
+	text-align: left;
+	padding-left: 5px;
+}
