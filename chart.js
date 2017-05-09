@@ -13,31 +13,25 @@ function entry(artist, song, sales, rating) {
 function refreshSales(chart_entry) {
   if (chart_entry.sales == 0) { chart_entry.sales_run.push[0]; return; }
   var weeks = chart_entry.chart_run.length;
-  if  (weeks > 20) weeks = 20;
-  var pos = weeks < 4 ? 0 : chart_entry.chart_run[chart_entry.chart_run.length-1];
-  if (pos > 10) pos = 10;
-  var delta = RA(3,15);
-  var min = 38;
-  var flag_min = false;
-  if (Math.random() > 0.25 && weeks < 8) {
-  
-  [30000, 40000, 50000, 60000, 70000, 80000, 90000].forEach(function(average_sales) {
-  		if (!flag_min && chart_entry.sales < average_sales)
-  		{
-  			flag_min = true;
-  			min = Math.min(Math.floor(chart_entry.sales*100/average_sales) + 1, 38);
-  		}
-  });
-  
+  if (chart_entry.sales <=3000 && weeks > 10) { 
+  	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(65,150));
+  	chart_entry.sales_run.push(chart_entry.sales);
+  	return; 
   }
-
-  if (!flag_min) {
-  	min = chart_entry.sales < 100000 && Math.random > 0.2 ? 38 + delta*weeks : 98;
-  	if (min > 98) min = 98;
-  }
-  var max = chart_entry.sales < 100000 ? 105 + delta + 2*(11-pos) : 145;
-  chart_entry.sales = Math.floor(chart_entry.sales*100/RA(min,max));
+  var pos = chart_entry.chart_run[chart_entry.chart_run.length-1];
+  if (pos <=10 || Math.random() > 0.2) {
+  if  (weeks > 10) weeks = 10;
+  var min_delta = -500*weeks, max_delta = 1000;
+  if (weeks <= 5) max_delta = RA(5000, 20000);
+  else max_delta = 11000 - 1000*weeks;
+ 
+  var delta = RA(min_delta, max_delta);
+  chart_entry.sales = chart_entry.sales + delta;
+  
+  } else chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(110,160))
+  if (chart_entry.sales < 0) chart_entry.sales = RA(0,3000);
   chart_entry.sales_run.push(chart_entry.sales);
+  
 }
 
 function generateNewEntry() {
