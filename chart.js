@@ -122,64 +122,41 @@ function generateChart() {
   redrawChart();
 }
 
-function generateChartCustom() {
-	compileChartCustom();
-    redrawChart();
-    resetTable();
+function generateChartFade() {
+	compileChartFade();
+	redrawChart();
 }
 
-function compileChartCustom() {
-	entries.forEach(function(entry) { refreshSalesCustom(entry); });
-	var entry_rows = document.getElementsByClassName('entry_row');
-	for (var j=1; j<=entry_rows.length; j++)
-	{ 
-		var rating = +entry_rows[j-1].querySelectorAll('[name="rating_'+j+'"]')[0].value;
-		entries.push(new entry(entry_rows[j-1].querySelectorAll('[name="artist_'+j+'"]')[0].value,
-		                       entry_rows[j-1].querySelectorAll('[name="song_'+j+'"]')[0].value,
-		                       RA(100, RA(1000/ (6 - rating), 10000 / (6 - rating))),
-		                       rating));
-	}
-	
-	sortEntries(entries);
-    entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });
+function compileChartFade() {
+	entries.forEach(function(entry) { refreshSalesFade(entry); });
+  
+  var entries_count = RA(0,RA(10,20));
+  for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntryFade());
+    //console.log('chart', chart[0]);
+  }
+  
+  sortEntries(entries);
+  entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });	
 }
 
-function refreshSalesCustom(chart_entry) {
-	if (chart_entry.sales == 0) { chart_entry.sales_run.push[0]; return; }
-    var min = 90 + 5 * (5 - chart_entry.rating);
-    var max = 150 + 50 * (5 - chart_entry.rating);
-    chart_entry.sales = Math.floor(chart_entry.sales*100/RA(min,max));
-    chart_entry.sales_run.push(chart_entry.sales);
+function refreshSalesFade(chart_entry) {
+	var min = Math.random() > 0.95 ? 30 : 95;
+	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(min,RA(150,RA(200,250))));
+	chart_entry.sales_run.push(chart_entry.sales);
 }
 
-function entryRow(i) {
-	i = +i;
-	var tr = document.createElement('tr');
-	tr.className = 'entry_row';
-	var td_artist = document.createElement('td');
-	td_artist.innerHTML = 'Artist: <input type="text" name="artist_'+i+'" value=""/>';
-	var td_song = document.createElement('td');
-	td_song.innerHTML = 'Song: <input type="text" name="song_'+i+'" value=""/>';
-	var td_rating = document.createElement('td');
-	td_rating.innerHTML = 'Rating: <input type="text" name="rating_'+i+'" value=""/>';
-	tr.appendChild(td_artist);
-	tr.appendChild(td_song);
-	tr.appendChild(td_rating);
-	return tr;	
+var MAX_GLOBAL = 320000;
+
+function generateNewEntryFade() {
+	MAX_GLOBAL = Math.floor(MAX_GLOBAL * 10000 / RA(9995,10010));
+	return new entry(makeWord(RA(5,15)),
+                           makeWord(RA(5,20)), RA(100, RA(Math.floor(MAX_GLOBAL/8), 
+                                                       RA(Math.floor(MAX_GLOBAL/4), 
+                                                       RA(Math.floor(MAX_GLOBAL/2),
+                                                          Math.floor(MAX_GLOBAL))))));
 }
 
-window.onload = function() {
-	resetTable();
-}
 
-function resetTable() {
-	entries_table.innerHTML = '';
-	entries_table.appendChild(entryRow(1));
-}
-
-function addEntryRow() {
-	entries_table.appendChild(entryRow(document.getElementsByClassName('entry_row').length + 1));
-}
 
 /*var interval;
 
