@@ -23,8 +23,10 @@ function refreshSales(chart_entry) {
   if (pos <=10 || Math.random() > 0.2) {
   if  (weeks > 10) weeks = 10;
   var min_delta = -500*weeks, max_delta = 1000;
-  if (weeks <= 5) max_delta = RA(5000, 20000);
-  else if (chart_entry.sales > 50000) max_delta = 0;
+  if (chart_entry.sales > 50000) {
+  	min_delta = -Math.floor(chart_entry.sales*chart_entry.sales/500000); max_delta = 0;
+  }
+  else if (weeks <= 5) max_delta = RA(5000, 20000);
   else max_delta = 11000 - 1000*weeks;
  
   var delta = RA(min_delta, max_delta);
