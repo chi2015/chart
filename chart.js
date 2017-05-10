@@ -13,8 +13,9 @@ function entry(artist, song, sales, rating) {
 function refreshSales(chart_entry) {
   if (chart_entry.sales == 0) { chart_entry.sales_run.push[0]; return; }
   var weeks = chart_entry.chart_run.length;
-  if (chart_entry.sales <=3000 && weeks > 10) { 
-  	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(65,150));
+
+  if (chart_entry.sales <=10000 && weeks > 10) { 
+  	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(98,RA(105,RA(120,150))));
   	chart_entry.sales_run.push(chart_entry.sales);
   	return; 
   }
@@ -23,6 +24,7 @@ function refreshSales(chart_entry) {
   if  (weeks > 10) weeks = 10;
   var min_delta = -500*weeks, max_delta = 1000;
   if (weeks <= 5) max_delta = RA(5000, 20000);
+  else if (chart_entry.sales > 50000) max_delta = 0;
   else max_delta = 11000 - 1000*weeks;
  
   var delta = RA(min_delta, max_delta);
@@ -140,20 +142,21 @@ function compileChartFade() {
 }
 
 function refreshSalesFade(chart_entry) {
-	var min = Math.random() > 0.95 ? 30 : 95;
-	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(min,RA(150,RA(200,250))));
+	var min = chart_entry.sales > 100000 ? 110 : (Math.random() > 0.98 ? 40 : 95),
+	max = RA(120,RA(150,200));
+	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(min,max));
 	chart_entry.sales_run.push(chart_entry.sales);
 }
 
 var MAX_GLOBAL = 320000;
 
 function generateNewEntryFade() {
-	MAX_GLOBAL = Math.floor(MAX_GLOBAL * 10000 / RA(9995,10010));
 	return new entry(makeWord(RA(5,15)),
-                           makeWord(RA(5,20)), RA(100, RA(Math.floor(MAX_GLOBAL/8), 
+                           makeWord(RA(5,20)), RA(1000, RA(Math.floor(MAX_GLOBAL/16), 
+											           RA(Math.floor(MAX_GLOBAL/8), 
                                                        RA(Math.floor(MAX_GLOBAL/4), 
                                                        RA(Math.floor(MAX_GLOBAL/2),
-                                                          Math.floor(MAX_GLOBAL))))));
+                                                          Math.floor(MAX_GLOBAL)))))));
 }
 
 
