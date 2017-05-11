@@ -104,11 +104,14 @@ function redrawChart() {
     p++;
     
     if (p <= 100) {
+    var peak_pos = Math.min.apply(Math, chart_entry.chart_run);
     chart_entry.el.innerHTML = '<div class="chart-pos">'+p+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-prev-pos">'+(chart_entry.chart_run.length < 2 ? 'new' : chart_entry.chart_run[chart_entry.chart_run.length-2] )+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-artist">'+chart_entry.artist+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-song">'+chart_entry.song+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-sales">('+chart_entry.sales+')</div>';
+    chart_entry.el.innerHTML += '<div class="chart-weeks">'+chart_entry.chart_run.length+' wks</div>';
+    chart_entry.el.innerHTML += '<div class="chart-pp">PP '+peak_pos+(peak_pos == 1 ? ' ('+weeksAtTop(chart_entry)+')':'')+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-run">'+chart_entry.chart_run.join("-")+'</div>';
     var top_pos = 20 + p*44;
     chart_entry.el.style.top = top_pos+'px';
@@ -119,6 +122,14 @@ function redrawChart() {
   d = Date.now() - ts;
   console.log('Chart redraw at '+d+' ms');
   
+}
+
+function weeksAtTop(chart_entry) {
+	var ret = 0;
+	chart_entry.chart_run.forEach(function(pos) {
+		if (pos === 1) ret++;
+	});
+	return ret;
 }
 
 function generateChart() {
