@@ -55,9 +55,8 @@ html, body {
 }
 
 .chart-run {
-	width: 800px;
 	text-align: left;
 	padding: 0 5px;
-	overflow-x:scroll;
-	
+	width: 500px;
+	overflow-x: hidden;
 }
