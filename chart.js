@@ -1,4 +1,5 @@
 var entries = [];
+var global_week = 0;
 
 function entry(artist, song, sales, rating) {
   this.artist = artist;
@@ -7,6 +8,7 @@ function entry(artist, song, sales, rating) {
   this.rating = [1,2,3,4,5].indexOf(rating) !== -1 ? rating : 0;
   this.chart_run = [];
   this.sales_run = [sales];
+  this.total = sales;
   this.el = null;
 }
 
@@ -17,6 +19,7 @@ function refreshSales(chart_entry) {
   if (chart_entry.sales <=10000 && weeks > 10) { 
   	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(98,RA(105,RA(120,150))));
   	chart_entry.sales_run.push(chart_entry.sales);
+  	chart_entry.total += chart_entry.sales;
   	return; 
   }
   var pos = chart_entry.chart_run[chart_entry.chart_run.length-1];
@@ -34,8 +37,15 @@ function refreshSales(chart_entry) {
   
   } else chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(110,160))
   if (chart_entry.sales < 0) chart_entry.sales = RA(0,3000);
-  chart_entry.sales_run.push(chart_entry.sales);
   
+  switch (global_week % 52) {
+  	 case 49:
+  	 case 51: chart_entry.sales = chart_entry.sales * 2; break;
+  	 case 50: chart_entry.sales = Math.floor(chart_entry.sales / 4); break;
+  }
+  
+  chart_entry.sales_run.push(chart_entry.sales);
+  chart_entry.total += chart_entry.sales;
 }
 
 function generateNewEntry() {
@@ -111,6 +121,7 @@ function redrawChart() {
     chart_entry.el.innerHTML += '<div class="chart-song">'+chart_entry.song+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-sales">('+chart_entry.sales+')</div>';
     chart_entry.el.innerHTML += '<div class="chart-weeks">'+chart_entry.chart_run.length+' wks</div>';
+    chart_entry.el.innerHTML += '<div class="chart-total">'+formatTotal(chart_entry.total)+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-pp">PP '+peak_pos+(peak_pos == 1 ? ' ('+weeksAtTop(chart_entry)+')':'')+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-run">'+chart_entry.chart_run.join("-")+'</div>';
     var top_pos = 20 + p*44;
@@ -124,6 +135,14 @@ function redrawChart() {
   
 }
 
+function formatTotal(total) {
+	var ret;
+	if (total >= 1000000) { ret = total / 1000000; ret = ret.toFixed(2); ret+="M"; }
+	else if (total >= 1000) { ret = total / 1000; ret = ret.toFixed(2); ret+="K"; }
+	else ret = total;
+	return ret;
+}
+
 function weeksAtTop(chart_entry) {
 	var ret = 0;
 	chart_entry.chart_run.forEach(function(pos) {
@@ -133,11 +152,14 @@ function weeksAtTop(chart_entry) {
 }
 
 function generateChart() {
+  global_week++;
   compileChart();
   redrawChart();
 }
 
 function generateChartFade() {
+	global_week++;
+	console.log(global_week);
 	compileChartFade();
 	redrawChart();
 }
@@ -145,7 +167,10 @@ function generateChartFade() {
 function compileChartFade() {
 	entries.forEach(function(entry) { refreshSalesFade(entry); });
   
-  var entries_count = RA(0,RA(10,20));
+  var entries_count, min_count = 3;
+  if (global_week % 52 === 48 || global_week % 52 === 49) min_count = 6;
+  if (global_week % 52 === 50) entries_count = 0;
+  else entries_count = RA(min_count,RA(13,23));
   for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntryFade());
     //console.log('chart', chart[0]);
   }
@@ -158,7 +183,15 @@ function refreshSalesFade(chart_entry) {
 	var min = chart_entry.sales > 100000 ? 110 : (Math.random() > 0.98 ? 40 : 95),
 	max = RA(120,RA(150,200));
 	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(min,max));
+	
+	switch (global_week % 52) {
+  	 case 49:
+  	 case 51: chart_entry.sales = chart_entry.sales * 2; break;
+  	 case 50: chart_entry.sales = Math.floor(chart_entry.sales / 4); break;
+  }
+	
 	chart_entry.sales_run.push(chart_entry.sales);
+	chart_entry.total += chart_entry.sales;
 }
 
 var MAX_GLOBAL = 320000;
