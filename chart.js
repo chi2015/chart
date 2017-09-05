@@ -1,3 +1,84 @@
+var chart = (function() {
+  
+  var entries = [];
+  
+  var weekNumber = 0;
+  
+  var types = ['default', 'fade'];
+  
+  var type = 'default';
+  
+  var chartChance = new Chance(Math.random);
+  
+  var countValues = [];
+  
+  var countWeights = [];
+  
+  function init(initType) {
+     if (types.indexOf(initType)!==-1) type = initType;
+     generateCountWeights();	
+  }
+  
+  function compile() {
+  	 weekNumber++;
+  	 entries.forEach(function(entry) { entry.refreshSales(type); });
+  	 var minCount = type == 'fade' ? ([48,49].indexOf(weekNumber % 52) !== -1 ? 6 : 3) : 0;
+  	 var maxCount = type == 'fade' ? (weekNumber % 52 == 50 ? 0 : 23) : 16;
+  	 var countWeightsArr = [];
+  	 var entriesCount = chartChance.weighted(chartValues, chartWeights);
+  	 for (var i=0; i< entriesCount; i++) generateNewEntry();
+  	                                                                          
+  }
+  
+  function getType() {
+  	return type;
+  }
+  
+  function generateNewEntry() {
+  
+  }
+  
+  function generateCountWeights() {
+  	   var w = 0;
+  	   if (type == 'fade') {
+  	   		for (var i=3; i<=23; i++) countValues.push(i);
+  	   		for (var j=23; j>=9; j--) {
+  	   			countWeights.push(w);
+  	   			w++;
+  	   		}
+  	   		for (var k=8; k>=3; k--) {
+  	   			w--;
+  	   			countWeights.push(w);
+  	   		}
+  	   }
+  	   else {
+  	   	   for (var i=0; i<=16; i++) countValues.push(i);
+  	   		for (var j=16; j>=3; j--) {
+  	   			countWeights.push(w);
+  	   			w++;
+  	   		}
+  	   		for (var k=2; k>=0; k--) {
+  	   			w--;
+  	   			countWeights.push(w);
+  	   		}
+  	   }
+  }
+  
+  return {
+  	 init : init,
+  	 compile : compile,
+  	 getType : getType
+  }
+  
+})();
+
+
+
+
+
+
+
+
 var entries = [];
 var global_week = 0;
 
@@ -67,6 +148,21 @@ function compileChart() {
   
   var entries_count = RA(0, RA(4, RA(8, RA(12, 16))));
   for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntry());
+    //console.log('chart', chart[0]);
+  }
+  
+  sortEntries(entries);
+  entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });	
+}
+
+function compileChartFade() {
+	entries.forEach(function(entry) { refreshSalesFade(entry); });
+  
+  var entries_count, min_count = 3;
+  if (global_week % 52 === 48 || global_week % 52 === 49) min_count = 6;
+  if (global_week % 52 === 50) entries_count = 0;
+  else entries_count = RA(min_count,RA(13,23));
+  for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntryFade());
     //console.log('chart', chart[0]);
   }
   
@@ -164,20 +260,7 @@ function generateChartFade() {
 	redrawChart();
 }
 
-function compileChartFade() {
-	entries.forEach(function(entry) { refreshSalesFade(entry); });
-  
-  var entries_count, min_count = 3;
-  if (global_week % 52 === 48 || global_week % 52 === 49) min_count = 6;
-  if (global_week % 52 === 50) entries_count = 0;
-  else entries_count = RA(min_count,RA(13,23));
-  for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntryFade());
-    //console.log('chart', chart[0]);
-  }
-  
-  sortEntries(entries);
-  entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });	
-}
+
 
 function refreshSalesFade(chart_entry) {
 	var min = chart_entry.sales > 100000 ? 110 : (Math.random() > 0.98 ? 40 : 95),
