@@ -4,9 +4,9 @@ var chart = (function() {
   
   var weekNumber = 0;
   
-  var types = ['default', 'fade'];
+  var types = ['normal', 'fade'];
   
-  var type = 'default';
+  var type = 'normal';
   
   var chartChance = new Chance(Math.random);
   
@@ -21,12 +21,12 @@ var chart = (function() {
   
   function compile() {
   	 weekNumber++;
-  	 entries.forEach(function(entry) { entry.refreshSales(type); });
   	 var minCount = type == 'fade' ? ([48,49].indexOf(weekNumber % 52) !== -1 ? 6 : 3) : 0;
   	 var maxCount = type == 'fade' ? (weekNumber % 52 == 50 ? 0 : 23) : 16;
   	 var countWeightsArr = [];
   	 var entriesCount = chartChance.weighted(chartValues, chartWeights);
   	 for (var i=0; i< entriesCount; i++) generateNewEntry();
+  	 entries.forEach(function(entry) { entry.refreshSales(type); });
   	                                                                          
   }
   
@@ -74,7 +74,72 @@ var chart = (function() {
 
 
 
+function Entry(params) {
+	this.weekEntry = params.week;
+    this.chartRun = {};
+    this.salesRun = {};
+    this.total = 0;
+    if (params.sales) {
+    	this.salesRun[this.weekEntry] = +params.sales;
+    }
+    this.artist = params.artist || this.generateArtist();
+    this.song = params.song || this.generateSong();
+    
+}
 
+
+
+Entry.prototype.refreshSales = function(week, type) {
+	var type = type || 'normal';
+	if (!this.salesRun[week]) {
+		var weeks = Object.keys(this.salesRun).length;
+		if (!weeks) {
+			var max_sales = this.entryChance.weighted(this.salesWeights[type][values], this.salesWeights[type][weights]);
+			var index = this.salesWeights[type][values].indexOf(max_sales);
+			this.salesRun[week] = this.entryChance.integer({min : index ? this.salesWeights[type][values][index-1] : this.minSales[type], max : max_sales});
+		}
+		else {
+			switch(type) {
+				case 'fade':
+					
+				case 'normal':
+					var prevWeek = Math.max.apply(this, Object.keys(this.salesRun).map(function(key) { return +key; }));
+					if (this.salesRun[prevWeek] <=10000 && weeks > 10) { 
+  						this.salesRun[week] =  Math.floor(chart_entry.sales * 100 / this.entryChance.integer({min : 98, 
+  																		            max : this.entryChance.integer({min : 105,
+  																		            max : this.entryChance.integer({min : 120, max : 150}) }) }));
+  					}													            	
+			}
+		}
+	}
+	this.total+=this.salesRun[week];
+}
+
+Entry.prototype.generateArtist = function() {
+
+}
+
+Entry.prototype.generateSong = function() {
+
+}
+
+Entry.prototype.minSales = {
+	normal : 100, fade : 1000
+}
+
+Entry.prototype.salesWeights = {
+	normal : {
+		values : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000],
+		weights : [16,32,64,32,16,8,4,2,1]
+	},
+	fade : {
+		values : [20000,40000,80000,160000,320000],
+		weights : [8,16,8,4,1]
+	}
+
+}
+
+Entry.prototype.entryChance = new Chance(Math.random);
 
 
 
@@ -82,7 +147,7 @@ var chart = (function() {
 var entries = [];
 var global_week = 0;
 
-function entry(artist, song, sales, rating) {
+function entry_old(artist, song, sales, rating) {
   this.artist = artist;
   this.song = song;
   this.sales = +sales;
@@ -130,7 +195,7 @@ function refreshSales(chart_entry) {
 }
 
 function generateNewEntry() {
-  return new entry(makeWord(RA(5,15)),
+  return new entry_old(makeWord(RA(5,15)),
                            makeWord(RA(5,20)), RA(100,
                            					   RA(1000, 
                                                RA(2000,
@@ -280,7 +345,7 @@ function refreshSalesFade(chart_entry) {
 var MAX_GLOBAL = 320000;
 
 function generateNewEntryFade() {
-	return new entry(makeWord(RA(5,15)),
+	return new entry_old(makeWord(RA(5,15)),
                            makeWord(RA(5,20)), RA(1000, RA(Math.floor(MAX_GLOBAL/16), 
 											           RA(Math.floor(MAX_GLOBAL/8), 
                                                        RA(Math.floor(MAX_GLOBAL/4), 
