@@ -21,21 +21,44 @@ var chart = (function() {
   
   function compile() {
   	 weekNumber++;
-  	 var minCount = type == 'fade' ? ([48,49].indexOf(weekNumber % 52) !== -1 ? 6 : 3) : 0;
-  	 var maxCount = type == 'fade' ? (weekNumber % 52 == 50 ? 0 : 23) : 16;
   	 var countWeightsArr = [];
-  	 var entriesCount = chartChance.weighted(chartValues, chartWeights);
+  	 var entriesCount = chartChance.weighted(countValues, countWeights);
   	 for (var i=0; i< entriesCount; i++) generateNewEntry();
-  	 entries.forEach(function(entry) { entry.refreshSales(type); });
-  	                                                                          
+  	 entries.forEach(function(entry) { entry.refreshSales(weekNumber, type); });
+  	 sortEntries();
+  	 console.log('entries', entries);                                                                         
   }
   
   function getType() {
   	return type;
   }
   
+  function getWeekNumber() {
+  	return weekNumber;
+  }
+    
   function generateNewEntry() {
+  		entries.push(new Entry({week : weekNumber}));
+  }
   
+  function sortEntries() {
+  	   entries.sort(function(a, b) {
+     		return b.salesRun[weekNumber] - a.salesRun[weekNumber];
+  	   });
+  	   entries.forEach(function(entry, index) {
+  	   		entry.chartRun[weekNumber] = index + 1;
+  	   });
+  }	
+  
+  function getChart(week) {
+  	  var ret = [], week = week || weekNumber;
+  	  entries.forEach(function(entry) {
+  	  	 if (entry.chartRun[week]) ret.push(entry);
+  	  });
+  	  ret.sort(function(a, b) {
+  	  	return a.chartRun[week] - b.chartRun[week];
+  	  });
+  	  return ret;
   }
   
   function generateCountWeights() {
@@ -67,7 +90,9 @@ var chart = (function() {
   return {
   	 init : init,
   	 compile : compile,
-  	 getType : getType
+  	 getType : getType,
+  	 getChart : getChart,
+  	 getWeekNumber : getWeekNumber
   }
   
 })();
@@ -87,27 +112,44 @@ function Entry(params) {
     
 }
 
-
-
 Entry.prototype.refreshSales = function(week, type) {
 	var type = type || 'normal';
 	if (!this.salesRun[week]) {
 		var weeks = Object.keys(this.salesRun).length;
 		if (!weeks) {
-			var max_sales = this.entryChance.weighted(this.salesWeights[type][values], this.salesWeights[type][weights]);
-			var index = this.salesWeights[type][values].indexOf(max_sales);
-			this.salesRun[week] = this.entryChance.integer({min : index ? this.salesWeights[type][values][index-1] : this.minSales[type], max : max_sales});
+			var max_sales = this.entryChance.weighted(this.salesWeights[type].values, this.salesWeights[type].weights);
+			var index = this.salesWeights[type].values.indexOf(max_sales);
+			this.salesRun[week] = this.entryChance.integer({min : index ? this.salesWeights[type].values[index-1] : this.minSales[type], max : max_sales});
 		}
 		else {
+		    var prevWeek = Math.max.apply(Math, Object.keys(this.salesRun).map(function(key) { return +key; }));
 			switch(type) {
 				case 'fade':
-					
+					var min = this.salesRun[prevWeek] > 100000 ? 110 : (Math.random() > 0.98 ? 40 : 95),
+						max = this.entryChance.integer({min : 120, max : this.entryChance.integer({min : 150, max : 200})});
+					this.salesRun[week] = Math.floor(this.salesRun[prevWeek] * 100 / this.entryChance.integer({min: min, max : max}));
 				case 'normal':
-					var prevWeek = Math.max.apply(this, Object.keys(this.salesRun).map(function(key) { return +key; }));
 					if (this.salesRun[prevWeek] <=10000 && weeks > 10) { 
-  						this.salesRun[week] =  Math.floor(chart_entry.sales * 100 / this.entryChance.integer({min : 98, 
+  						this.salesRun[week] =  Math.floor(this.salesRun[prevWeek] * 100 / this.entryChance.integer({min : 98, 
   																		            max : this.entryChance.integer({min : 105,
   																		            max : this.entryChance.integer({min : 120, max : 150}) }) }));
+  					}
+  					else {
+  						var pos = this.chartRun[prevWeek];
+  						if (pos <=10 || Math.random() > 0.2) {
+  							if  (weeks > 10) weeks = 10;
+  							var min_delta = -500*weeks, max_delta = 1000;
+  							if (this.salesRun[prevWeek] > 50000) {
+  								min_delta = -Math.floor(this.salesRun[prevWeek]*this.salesRun[prevWeek]/500000); max_delta = 0;
+  							}
+  							else if (weeks <= 5) max_delta = this.entryChance.integer({ min : 5000, max :20000});
+  							else max_delta = 11000 - 1000*weeks;
+ 
+  							var delta = this.entryChance.integer({min : min_delta, max : max_delta});
+ 							this.salesRun[week] = -delta < this.salesRun[prevWeek] ? this.salesRun[prevWeek] + delta : 
+ 							                                                         this.entryChance.integer({min : 0, max : 3000});
+  
+  						} else this.salesRun[week] = Math.floor(this.salesRun[prevWeek] * 100 / this.entryChance.integer({min : 110, max : 160}));
   					}													            	
 			}
 		}
@@ -116,11 +158,11 @@ Entry.prototype.refreshSales = function(week, type) {
 }
 
 Entry.prototype.generateArtist = function() {
-
+	return this.entryChance.sentence({ words : this.entryChance.integer({ min : 1, max : 4}) }).slice(0,-1).toUpperCase();
 }
 
 Entry.prototype.generateSong = function() {
-
+	return this.entryChance.sentence({ words : this.entryChance.integer({ min : 1, max : 7}) }).slice(0,-1).toUpperCase();
 }
 
 Entry.prototype.minSales = {
@@ -130,7 +172,7 @@ Entry.prototype.minSales = {
 Entry.prototype.salesWeights = {
 	normal : {
 		values : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000],
-		weights : [16,32,64,32,16,8,4,2,1]
+		weights : [256,1024,4096,1024,256,64,16,4,1]
 	},
 	fade : {
 		values : [20000,40000,80000,160000,320000],
@@ -141,124 +183,33 @@ Entry.prototype.salesWeights = {
 
 Entry.prototype.entryChance = new Chance(Math.random);
 
-
-
-
-var entries = [];
-var global_week = 0;
-
-function entry_old(artist, song, sales, rating) {
-  this.artist = artist;
-  this.song = song;
-  this.sales = +sales;
-  this.rating = [1,2,3,4,5].indexOf(rating) !== -1 ? rating : 0;
-  this.chart_run = [];
-  this.sales_run = [sales];
-  this.total = sales;
-  this.el = null;
+Entry.prototype.weeksAtTop = function() {
+	var ret = 0;
+	Object.keys(this.chartRun).forEach(function(week) {
+		if (this.chartRun[week] == 1) ret++;
+	}.bind(this));
+	return ret;
 }
 
-function refreshSales(chart_entry) {
-  if (chart_entry.sales == 0) { chart_entry.sales_run.push[0]; return; }
-  var weeks = chart_entry.chart_run.length;
-
-  if (chart_entry.sales <=10000 && weeks > 10) { 
-  	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(98,RA(105,RA(120,150))));
-  	chart_entry.sales_run.push(chart_entry.sales);
-  	chart_entry.total += chart_entry.sales;
-  	return; 
-  }
-  var pos = chart_entry.chart_run[chart_entry.chart_run.length-1];
-  if (pos <=10 || Math.random() > 0.2) {
-  if  (weeks > 10) weeks = 10;
-  var min_delta = -500*weeks, max_delta = 1000;
-  if (chart_entry.sales > 50000) {
-  	min_delta = -Math.floor(chart_entry.sales*chart_entry.sales/500000); max_delta = 0;
-  }
-  else if (weeks <= 5) max_delta = RA(5000, 20000);
-  else max_delta = 11000 - 1000*weeks;
- 
-  var delta = RA(min_delta, max_delta);
-  chart_entry.sales = chart_entry.sales + delta;
-  
-  } else chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(110,160))
-  if (chart_entry.sales < 0) chart_entry.sales = RA(0,3000);
-  
-  switch (global_week % 52) {
-  	 case 49:
-  	 case 51: chart_entry.sales = chart_entry.sales * 2; break;
-  	 case 50: chart_entry.sales = Math.floor(chart_entry.sales / 4); break;
-  }
-  
-  chart_entry.sales_run.push(chart_entry.sales);
-  chart_entry.total += chart_entry.sales;
+Entry.prototype.peak = function() {
+	return Math.min.apply(Math, Object.keys(this.chartRun).map(function (key) { return this.chartRun[key]; }.bind(this)));
 }
 
-function generateNewEntry() {
-  return new entry_old(makeWord(RA(5,15)),
-                           makeWord(RA(5,20)), RA(100,
-                           					   RA(1000, 
-                                               RA(2000,
-                           					   RA(4000,
-                           					   RA(8000,	
-                           					   RA(16000,
-                                               RA(32000,
-                                               RA(64000, 
-                                               RA(128000, 256000))))))))));
-  
+Entry.prototype.chartRunStr = function() {
+	var arr = Object.keys(this.chartRun).sort(function(a,b) {return (+a) - (+b); }).map(function (key) { return this.chartRun[key]; }.bind(this));
+	return arr.join('-');
 }
 
-function compileChart() {
-  entries.forEach(function(entry) { refreshSales(entry); });
-  
-  var entries_count = RA(0, RA(4, RA(8, RA(12, 16))));
-  for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntry());
-    //console.log('chart', chart[0]);
-  }
-  
-  sortEntries(entries);
-  entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });	
-}
-
-function compileChartFade() {
-	entries.forEach(function(entry) { refreshSalesFade(entry); });
-  
-  var entries_count, min_count = 3;
-  if (global_week % 52 === 48 || global_week % 52 === 49) min_count = 6;
-  if (global_week % 52 === 50) entries_count = 0;
-  else entries_count = RA(min_count,RA(13,23));
-  for (var i=0; i<entries_count; i++) {  entries.push(generateNewEntryFade());
-    //console.log('chart', chart[0]);
-  }
-  
-  sortEntries(entries);
-  entries.forEach(function(entry, i) { entry.chart_run.push(i+1); });	
-}
-
-function makeWord(length)
-{
-    var text = "";
-    var possible = "ABCDEF GHIJKL MNOPQR STUVWX YZ0123 456789";
-
-    for( var i=0; i < length; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-    return text;
-}
-
-function RA(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
-function sortEntries(entries) {
-  entries.sort(function(a, b) {
-     return b.sales - a.sales;
-  });
+function generateNewChart() {
+	chart.compile();
+	redrawChart();
 }
 
 function redrawChart() {
   var ts = Date.now(), d;
-  var p = 0;
+  var entries = chart.getChart();
+  var week = chart.getWeekNumber();
+  
   entries.forEach(function(chart_entry) {
     if (!chart_entry.el) {
     	var el = document.createElement('div');
@@ -272,20 +223,19 @@ function redrawChart() {
     	
     }
     
-    p++;
-    
-    if (p <= 100) {
-    var peak_pos = Math.min.apply(Math, chart_entry.chart_run);
-    chart_entry.el.innerHTML = '<div class="chart-pos">'+p+'</div>';
-    chart_entry.el.innerHTML += '<div class="chart-prev-pos">'+(chart_entry.chart_run.length < 2 ? 'new' : chart_entry.chart_run[chart_entry.chart_run.length-2] )+'</div>';
+
+    var peak_pos = chart_entry.peak();
+    if (chart_entry.chartRun[week] <= 100) {
+    chart_entry.el.innerHTML = '<div class="chart-pos">'+chart_entry.chartRun[week]+'</div>';
+    chart_entry.el.innerHTML += '<div class="chart-prev-pos">'+(Object.keys(chart_entry.chartRun).length < 2 ? 'new' : chart_entry.chartRun[week-1] )+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-artist">'+chart_entry.artist+'</div>';
     chart_entry.el.innerHTML += '<div class="chart-song">'+chart_entry.song+'</div>';
-    chart_entry.el.innerHTML += '<div class="chart-sales">('+chart_entry.sales+')</div>';
-    chart_entry.el.innerHTML += '<div class="chart-weeks">'+chart_entry.chart_run.length+' wks</div>';
+    chart_entry.el.innerHTML += '<div class="chart-sales">('+chart_entry.salesRun[week]+')</div>';
+    chart_entry.el.innerHTML += '<div class="chart-weeks">'+Object.keys(chart_entry.chartRun).length+' wks</div>';
     chart_entry.el.innerHTML += '<div class="chart-total">'+formatTotal(chart_entry.total)+'</div>';
-    chart_entry.el.innerHTML += '<div class="chart-pp">PP '+peak_pos+(peak_pos == 1 ? ' ('+weeksAtTop(chart_entry)+')':'')+'</div>';
-    chart_entry.el.innerHTML += '<div class="chart-run">'+chart_entry.chart_run.join("-")+'</div>';
-    var top_pos = 20 + p*44;
+    chart_entry.el.innerHTML += '<div class="chart-pp">PP '+peak_pos+(peak_pos == 1 ? ' ('+chart_entry.weeksAtTop()+')':'')+'</div>';
+    chart_entry.el.innerHTML += '<div class="chart-run">'+chart_entry.chartRunStr()+'</div>';
+    var top_pos = 20 + chart_entry.chartRun[week]*44;
     chart_entry.el.style.top = top_pos+'px';
     } else chart_entry.el.innerHTML = '';
     
@@ -304,64 +254,7 @@ function formatTotal(total) {
 	return ret;
 }
 
-function weeksAtTop(chart_entry) {
-	var ret = 0;
-	chart_entry.chart_run.forEach(function(pos) {
-		if (pos === 1) ret++;
-	});
-	return ret;
-}
-
-function generateChart() {
-  global_week++;
-  compileChart();
-  redrawChart();
-}
-
-function generateChartFade() {
-	global_week++;
-	console.log(global_week);
-	compileChartFade();
-	redrawChart();
-}
+chart.init('normal');
 
 
-
-function refreshSalesFade(chart_entry) {
-	var min = chart_entry.sales > 100000 ? 110 : (Math.random() > 0.98 ? 40 : 95),
-	max = RA(120,RA(150,200));
-	chart_entry.sales = Math.floor(chart_entry.sales * 100 / RA(min,max));
-	
-	switch (global_week % 52) {
-  	 case 49:
-  	 case 51: chart_entry.sales = chart_entry.sales * 2; break;
-  	 case 50: chart_entry.sales = Math.floor(chart_entry.sales / 4); break;
-  }
-	
-	chart_entry.sales_run.push(chart_entry.sales);
-	chart_entry.total += chart_entry.sales;
-}
-
-var MAX_GLOBAL = 320000;
-
-function generateNewEntryFade() {
-	return new entry_old(makeWord(RA(5,15)),
-                           makeWord(RA(5,20)), RA(1000, RA(Math.floor(MAX_GLOBAL/16), 
-											           RA(Math.floor(MAX_GLOBAL/8), 
-                                                       RA(Math.floor(MAX_GLOBAL/4), 
-                                                       RA(Math.floor(MAX_GLOBAL/2),
-                                                          Math.floor(MAX_GLOBAL)))))));
-}
-
-
-
-/*var interval;
-
-/function runChart() {
-	interval = setInterval(generateChart, 5000);
-}
-
-function pauseChart() {
-	clearInterval(interval);
-}*/
 
